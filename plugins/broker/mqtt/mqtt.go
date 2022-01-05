@@ -17,14 +17,15 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"go-micro.dev/v4/broker"
-	"go-micro.dev/v4/codec/json"
 	"go-micro.dev/v4/cmd"
+	"go-micro.dev/v4/codec/json"
 	log "go-micro.dev/v4/logger"
 )
 
@@ -125,6 +126,23 @@ func newClient(addrs []string, opts broker.Options) mqtt.Client {
 	// add brokers
 	for _, addr := range addrs {
 		cOpts.AddBroker(addr)
+	}
+
+	// process options of mqtt from context
+	Cfg := opts.Context.Value("paho.mqtt.golang")
+	vCfg := reflect.ValueOf(Cfg)
+	tOpts := reflect.TypeOf(cOpts)
+	vOpts := reflect.ValueOf(cOpts)
+	for i := 0; i < tOpts.NumField(); i++ {
+		fsOpts := tOpts.Field(i)
+		fsOptsName := fsOpts.Name
+		fvCfg := vCfg.FieldByName(fsOptsName)
+		fvCfgKind := fvCfg.Kind()
+		fvOpts := vOpts.FieldByName(fsOptsName)
+		fvOptsKind := fvOpts.Kind()
+		if !fvCfg.IsZero() && fvCfgKind == fvOptsKind {
+			fvOpts.Set(fvCfg)
+		}
 	}
 
 	return mqtt.NewClient(cOpts)
