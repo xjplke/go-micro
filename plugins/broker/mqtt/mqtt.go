@@ -131,8 +131,8 @@ func newClient(addrs []string, opts broker.Options) mqtt.Client {
 	// process options of mqtt from context
 	Cfg := opts.Context.Value("paho.mqtt.golang")
 	vCfg := reflect.ValueOf(Cfg)
-	tOpts := reflect.TypeOf(cOpts)
-	vOpts := reflect.ValueOf(cOpts)
+	tOpts := reflect.TypeOf(cOpts).Elem()
+	vOpts := reflect.ValueOf(cOpts).Elem()
 	for i := 0; i < tOpts.NumField(); i++ {
 		fsOpts := tOpts.Field(i)
 		fsOptsName := fsOpts.Name
@@ -140,7 +140,7 @@ func newClient(addrs []string, opts broker.Options) mqtt.Client {
 		fvCfgKind := fvCfg.Kind()
 		fvOpts := vOpts.FieldByName(fsOptsName)
 		fvOptsKind := fvOpts.Kind()
-		if !fvCfg.IsZero() && fvCfgKind == fvOptsKind {
+		if fvCfgKind != reflect.Invalid && fvCfgKind == fvOptsKind && !fvCfg.IsZero() {
 			fvOpts.Set(fvCfg)
 		}
 	}
